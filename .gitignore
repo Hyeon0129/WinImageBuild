@@ -1,0 +1,26 @@
+# 설치 미디어 / 빌드 산출물 - 용량이 커서 저장소에 안 올림, 각자 준비/생성
+SourceISO/*.iso
+BuildOutput/*.qcow2
+BuildOutput/*.vhd
+BuildOutput/*.vhdx
+BuildOutput/*.raw
+BuildOutput/*.img
+
+# 빌드할 때마다 생기는 실행 기록 (그때그때의 config.ini, 로그, 임시 스크립트)
+runs/
+
+# 앱 런타임 데이터 (빌드 기록, 서버 로그) - 이 PC에서만 의미있는 데이터
+AppData/
+
+# 사용자가 저장한 빌드 프리셋 - 개인 설정이라 공유 저장소에는 안 올림
+profiles/*.json
+
+# windows-imaging-tools가 실행 중 자동 생성하는 중간 파일
+windows-imaging-tools/config.ini.offline
+
+# OS/에디터 잡동사니
+Thumbs.db
+desktop.ini
+*.pyc
+__pycache__/
+.browser-profile/

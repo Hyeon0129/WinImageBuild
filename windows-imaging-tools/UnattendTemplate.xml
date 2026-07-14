@@ -1,0 +1,311 @@
+<?xml version="1.0" encoding="utf-8"?>
+<unattend xmlns="urn:schemas-microsoft-com:unattend">
+
+    <!-- =========================================================
+         Windows 11 Pro / Unattended Answer File
+         대상  : Ironic 배포용 qcow2 이미지 생성
+         목적  : 설치 완료 후 Administrator 자동 로그인 데스크톱 진입
+         파티션: EFI(500MB) → MSR(16MB) → C:(40GB) → Recovery(2GB)
+         ========================================================= -->
+
+    <settings pass="windowsPE">
+
+        <!-- 디스크 구성 (GPT / UEFI) -->
+        <component name="Microsoft-Windows-Setup"
+                   processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35"
+                   language="neutral"
+                   versionScope="nonSxS"
+                   xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+            <DiskConfiguration>
+                <WillShowUI>OnError</WillShowUI>
+                <Disk wcm:action="add">
+                    <DiskID>0</DiskID>
+                    <WillWipeDisk>true</WillWipeDisk>
+
+                    <CreatePartitions>
+                        <!-- 1) EFI 시스템 파티션 500 MB -->
+                        <CreatePartition wcm:action="add">
+                            <Order>1</Order>
+                            <Size>500</Size>
+                            <Type>EFI</Type>
+                        </CreatePartition>
+                        <!-- 2) Microsoft Reserved (MSR) 16 MB -->
+                        <CreatePartition wcm:action="add">
+                            <Order>2</Order>
+                            <Size>16</Size>
+                            <Type>MSR</Type>
+                        </CreatePartition>
+                        <!-- 3) OS 파티션 (C:) 40 GB -->
+                        <CreatePartition wcm:action="add">
+                            <Order>3</Order>
+                            <Size>40960</Size>
+                            <Type>Primary</Type>
+                        </CreatePartition>
+                        <!-- 4) 복구 파티션 2 GB -->
+                        <CreatePartition wcm:action="add">
+                            <Order>4</Order>
+                            <Size>2048</Size>
+                            <Type>Recovery</Type>
+                        </CreatePartition>
+                    </CreatePartitions>
+
+                    <ModifyPartitions>
+                        <!-- EFI → FAT32 포맷 (레이블 없음) -->
+                        <ModifyPartition wcm:action="add">
+                            <Order>1</Order>
+                            <PartitionID>1</PartitionID>
+                            <Format>FAT32</Format>
+                        </ModifyPartition>
+                        <!-- MSR → 포맷 불필요 -->
+                        <!-- OS 파티션 (C:) → NTFS, 드라이브 문자 C (레이블 없음) -->
+                        <ModifyPartition wcm:action="add">
+                            <Order>3</Order>
+                            <PartitionID>3</PartitionID>
+                            <Format>NTFS</Format>
+                            <Letter>C</Letter>
+                            <Label>로컬 디스크</Label>
+                        </ModifyPartition>
+                        <!-- 복구 파티션 → NTFS, GPT Recovery GUID (레이블 없음) -->
+                        <ModifyPartition wcm:action="add">
+                            <Order>4</Order>
+                            <PartitionID>4</PartitionID>
+                            <Format>NTFS</Format>
+                            <TypeID>de94bba4-06d1-4d40-a16a-bfd50179d6ac</TypeID>
+                        </ModifyPartition>
+                    </ModifyPartitions>
+
+                </Disk>
+            </DiskConfiguration>
+
+            <!-- OS 이미지 설치 위치 : Partition 3 (C:) -->
+            <ImageInstall>
+                <OSImage>
+                    <InstallTo>
+                        <DiskID>0</DiskID>
+                        <PartitionID>3</PartitionID>
+                    </InstallTo>
+                    <InstallToAvailablePartition>false</InstallToAvailablePartition>
+                    <WillShowUI>OnError</WillShowUI>
+                    <InstallFrom>
+                        <MetaData wcm:action="add">
+                            <Key>/IMAGE/NAME</Key>
+                            <Value>Windows 10 Pro</Value>
+                        </MetaData>
+                    </InstallFrom>
+                </OSImage>
+            </ImageInstall>
+
+            <UserData>
+                <AcceptEula>true</AcceptEula>
+                <!--
+                <ProductKey>
+                    <Key>XXXXX-XXXXX-XXXXX-XXXXX-XXXXX</Key>
+                    <WillShowUI>OnError</WillShowUI>
+                </ProductKey>
+                -->
+            </UserData>
+
+        </component>
+
+        <!-- WinPE 설치 UI 언어 : 한국어 -->
+        <component name="Microsoft-Windows-International-Core-WinPE"
+                   processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35"
+                   language="neutral"
+                   versionScope="nonSxS"
+                   xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <SetupUILanguage>
+                <UILanguage>ko-KR</UILanguage>
+            </SetupUILanguage>
+            <InputLocale>ko-KR</InputLocale>
+            <UILanguage>ko-KR</UILanguage>
+            <SystemLocale>ko-KR</SystemLocale>
+            <UserLocale>ko-KR</UserLocale>
+        </component>
+
+    </settings>
+
+    <!-- =========================================================
+         specialize pass : RDP 활성화, 시간대, 전문화 스크립트
+         ========================================================= -->
+    <settings pass="specialize">
+
+        <!-- RDP 허용 -->
+        <component name="Microsoft-Windows-TerminalServices-LocalSessionManager"
+                   processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35"
+                   language="neutral"
+                   versionScope="nonSxS"
+                   xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <fDenyTSConnections>false</fDenyTSConnections>
+        </component>
+
+        <!-- RDP NLA 인증 -->
+        <component name="Microsoft-Windows-TerminalServices-RDP-WinStationExtensions"
+                   processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35"
+                   language="neutral"
+                   versionScope="nonSxS"
+                   xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <UserAuthentication>1</UserAuthentication>
+        </component>
+
+        <!-- 방화벽 : 원격 데스크톱 허용 -->
+        <component name="Networking-MPSSVC-Svc"
+                   processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35"
+                   language="neutral"
+                   versionScope="nonSxS"
+                   xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <FirewallGroups>
+                <FirewallGroup wcm:action="add" wcm:keyValue="RemoteDesktop">
+                    <Active>true</Active>
+                    <Profile>all</Profile>
+                    <Group>@FirewallAPI.dll,-28752</Group>
+                </FirewallGroup>
+            </FirewallGroups>
+        </component>
+
+        <!-- 시간대 : UTC / 컴퓨터 이름 자동 생성 -->
+        <component name="Microsoft-Windows-Shell-Setup"
+                   processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35"
+                   language="neutral"
+                   versionScope="NonSxS"
+                   xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <TimeZone>Korea Standard Time</TimeZone>
+            <ComputerName>*</ComputerName>
+            <!--
+            <ProductKey>XXXXX-XXXXX-XXXXX-XXXXX-XXXXX</ProductKey>
+            -->
+        </component>
+
+        <!-- CEIP 비활성화 -->
+        <component name="Microsoft-Windows-SQMApi"
+                   processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35"
+                   language="neutral"
+                   versionScope="NonSxS"
+                   xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <CEIPEnabled>0</CEIPEnabled>
+        </component>
+
+        <!-- 전문화 단계 PowerShell 스크립트 실행 (필요 시 활성화) -->
+        <component name="Microsoft-Windows-Deployment"
+                   processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35"
+                   language="neutral"
+                   versionScope="nonSxS"
+                   xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <RunSynchronous>
+                <RunSynchronousCommand wcm:action="add">
+                    <Order>1</Order>
+                    <Path>powershell -NoLogo -NonInteractive -ExecutionPolicy RemoteSigned -File %SystemDrive%\UnattendResources\Specialize.ps1</Path>
+                    <Description>전문화 스크립트 실행</Description>
+                </RunSynchronousCommand>
+            </RunSynchronous>
+        </component>
+
+    </settings>
+
+    <!-- =========================================================
+         oobeSystem pass : OOBE 완전 건너뛰기, 자동 로그인 설정
+         ========================================================= -->
+    <settings pass="oobeSystem">
+
+        <component name="Microsoft-Windows-Shell-Setup"
+                   processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35"
+                   language="neutral"
+                   versionScope="nonSxS"
+                   xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+
+            <!-- 시각 효과 -->
+            <VisualEffects>
+                <FontSmoothing>ClearType</FontSmoothing>
+            </VisualEffects>
+
+            <!-- OOBE 전체 건너뛰기 -->
+            <OOBE>
+                <HideEULAPage>true</HideEULAPage>
+                <!-- 자동 보호 비활성화 (3) -->
+                <ProtectYourPC>3</ProtectYourPC>
+                <NetworkLocation>Work</NetworkLocation>
+                <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
+                <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
+                <HideLocalAccountScreen>true</HideLocalAccountScreen>
+                <HideOEMRegistrationScreen>true</HideOEMRegistrationScreen>
+                <SkipMachineOOBE>true</SkipMachineOOBE>
+                <SkipUserOOBE>true</SkipUserOOBE>
+            </OOBE>
+
+            <!-- Administrator 계정 비밀번호 설정 (초기 프로비저닝 전용) -->
+            <UserAccounts>
+                <AdministratorPassword>
+                    <Value>CHANGE_ME</Value>
+                    <PlainText>true</PlainText>
+                </AdministratorPassword>
+                <!-- 로컬 계정 추가 없음 -->
+            </UserAccounts>
+
+            <!-- Administrator 자동 로그인 -->
+            <AutoLogon>
+                <Password>
+                    <Value>CHANGE_ME</Value>
+                    <PlainText>true</PlainText>
+                </Password>
+                <Enabled>true</Enabled>
+                <Username>Administrator</Username>
+            </AutoLogon>
+
+            <!-- 컴퓨터 이름 자동 생성 -->
+            <ComputerName>*</ComputerName>
+
+            <!-- 첫 로그온 시 동기 명령 (OOBE 이전) -->
+            <FirstLogonCommands>
+                <SynchronousCommand wcm:action="add">
+                    <Order>1</Order>
+                    <CommandLine>%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell -NoLogo -NonInteractive -ExecutionPolicy RemoteSigned -File %SystemDrive%\UnattendResources\FirstLogon.ps1</CommandLine>
+                    <RequiresUserInput>false</RequiresUserInput>
+                </SynchronousCommand>
+            </FirstLogonCommands>
+
+            <!-- 로그온 후 비동기 명령 -->
+            <LogonCommands>
+                <AsynchronousCommand wcm:action="add">
+                    <Order>1</Order>
+                    <CommandLine>%SystemRoot%\System32\WindowsPowerShell\v1.0\powershell -NoLogo -NonInteractive -ExecutionPolicy RemoteSigned -File %SystemDrive%\UnattendResources\Logon.ps1</CommandLine>
+                </AsynchronousCommand>
+            </LogonCommands>
+
+        </component>
+
+        <!-- OOBE 시스템 언어 : 한국어 -->
+        <component name="Microsoft-Windows-International-Core"
+                   processorArchitecture="amd64"
+                   publicKeyToken="31bf3856ad364e35"
+                   language="neutral"
+                   versionScope="nonSxS"
+                   xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State"
+                   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+            <InputLocale>ko-KR</InputLocale>
+            <UILanguage>ko-KR</UILanguage>
+            <UILanguageFallback>ko-KR</UILanguageFallback>
+            <SystemLocale>ko-KR</SystemLocale>
+            <UserLocale>ko-KR</UserLocale>
+        </component>
+
+    </settings>
+
+</unattend>
