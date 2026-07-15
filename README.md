@@ -1,15 +1,28 @@
-# WinImageBuild
+## WinImageBuild
 
-Windows 이미지(qcow2)를 Ironic/Bifrost 배포용으로 만들 때 매번 반복하던 수동 작업(ISO 마운트, config.ini 손으로 수정, PowerShell 명령어 순서대로 실행...)을 자동화한 사내 도구입니다. [cloudbase/windows-imaging-tools](https://github.com/cloudbase/windows-imaging-tools) 위에 GUI를 얹은 형태라고 보시면 됩니다.
+Windows 이미지(qcow2)를 Ironic/Bifrost 배포용으로 만들 때 매번 반복하던 수동 작업 ISO 마운트, config.ini 수정, PowerShell 등등을 자동화한 도구입니다. 
+[cloudbase/windows-imaging-tools](https://github.com/cloudbase/windows-imaging-tools) 
 
-exe 하나 실행하면 대시보드에서 준비된 ISO/드라이버를 확인하고, 마운트해서 에디션 고르고, 빌드 시작하면 실시간으로 로그 보면서 진행상황을 확인할 수 있습니다.
 
-## 시작하기 전에
+### 사전 준비
 
-- Windows 10/11, **관리자 권한**으로 `WinImageBuild.exe` 실행 (처음 실행 시 UAC 승인 필요)
-- **Hyper-V** 활성화 — 앱을 처음 켜면 자동으로 확인하고, 꺼져있으면 활성화까지 시도합니다(재부팅 필요하다고 알려줌)
-- **외부 가상 스위치**가 하나 있어야 함 — 대시보드의 "환경 점검"에서 없으면 그 자리에서 새로 만들 수 있습니다
-- 디스크 여유 공간 넉넉히 (빌드 한 번에 임시 VHD 50GB + 최종 이미지까지 잡으면 100GB 이상 권장)
+- **Window ADK 설치** : ADK 폴더 내에 있음
+- **Hyper-V 활성화** : 제어판 → 프로그램 → Windows 기능 켜기/끄기 → Hyper-V 체크 후 재부팅 / Hyper-V, Hyper-V 관리 도구, Hyper-V 플랫폼 체크
+```powershell
+# 이더넷 2는 각 시스템에서 사용가능한 인터페이스 이름
+New-VMSwitch -Name "ExternalSwitch" -NetAdapterName "이더넷 2" -AllowManagementOS $true
+
+# ExternalSwitch 생성 확인
+PS C:\WINDOWS\system32> Get-VMSwitch
+
+Name           SwitchType NetAdapterInterfaceDescription
+----           ---------- ------------------------------
+ExternalSwitch External   Realtek USB GbE Family Controller
+Default Switch Internal
+```
+
+- **외부 가상 스위치 설정** 호스트와 VM 통신용
+
 
 ## 폴더 구조
 
@@ -46,7 +59,6 @@ WinImageBuild\ (=dist, 이 폴더 자체가 배포 단위입니다)
 └── AppData\                     # 앱 자체의 빌드 기록/실행 로그 (history.json, server.log)
 ```
 
-동료 PC에 새로 설치할 때는 `SourceISO\`에 원하는 Windows ISO만 넣고, `drivers\lan\`도 서버 기종에 맞게 바꾼 다음 exe만 실행하면 됩니다. 나머지는 그대로 두시면 됩니다.
 
 ## 사용 순서
 
