@@ -14,9 +14,6 @@ runs/
 AppData/*.json
 AppData/*.log
 
-# 사용자가 저장한 빌드 프리셋 - 개인 설정이라 공유 저장소에는 안 올림
-profiles/*.json
-
 # windows-imaging-tools가 실행 중 자동 생성하는 중간 파일
 windows-imaging-tools/config.ini.offline
 
